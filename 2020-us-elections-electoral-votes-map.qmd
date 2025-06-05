@@ -1,0 +1,243 @@
+---
+title: "2020 U.S. Presidential Election Results: Map of Electoral Votes"
+author: "Gaston Sanchez"
+date: "Jun 3, 2025"
+format: 
+  html:
+    toc: true
+    number-sections: true
+    theme: zephyr
+embed-resources: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, error = TRUE)
+```
+
+
+```{r pkgs, message = FALSE, echo = FALSE}
+library(tidyverse) # ecosystem of data science packages
+```
+
+
+# Description
+
+The data visualization of this module is based on the map of electoral votes 
+that appears in the following New York Times webpage (Nov 3, 2020):
+
+__Presidential Election Results 2020__
+
+<https://www.nytimes.com/interactive/2020/11/03/us/elections/results-president.html>
+
+![2020 Presidential Election Results: Map of Electoral Votes](source/map-electoral-votes-2020.png)
+
+
+\
+
+## Details (datasheet)
+
+- __Topic(s)__: 
+  + Politics 
+  + Elections
+  + President
+  + U.S.
+- __Data__:
+  + Size: medium data
+  + Format: data in CSV tables
+  + Requires merging data
+- __Graphic__:
+  + Type: tiles plot
+  + Styles: ggplot, interactive ggiraph 
+  + Interactive: yes
+
+
+## R Packages
+
+```{r pkgs, eval = FALSE}
+```
+
+
+-----
+
+
+# Data
+
+This modules requires importing three data sets (each data is in a CSV file 
+stored in the `data/` folder of this github repo):
+
+1) `countypres_2000-2020.csv`
+
+2) `electoral-votes-tiles-map.csv`
+
+3) `states-lables-coords.csv`
+
+
+## Presidential Elections data
+
+First we import the Presidential Election Returns 2000-2020 data.
+Keep in mind that we are only interested in the 2020 elections. Also, because
+the data has votes at the county level, we need to compute the total number of
+votes for each candidate by state, and determine the winner party.
+
+```{r}
+# data of presidential results (2000-2020)
+pres_results = read_csv("data/countypres_2000-2020.csv")
+
+# party winner in every state, 2020
+state_by_party = pres_results |> 
+  filter(year == 2020) |> 
+  group_by(state_po, party) |>
+  summarize(votes = sum(candidatevotes)) |> 
+  slice_max(votes) |> 
+  select(state_po, party)
+
+head(state_by_party)
+```
+
+
+## Import data of tiles map
+
+The next two data sets to be imported have to do with: 1) the table that encodes 
+the tiles for mapping the electoral votes, and 2) the table that has the 
+coordinates for displaying the labels of the States.
+
+```{r message = FALSE}
+tiles_map = read_csv("data/electoral-votes-tiles-map.csv")
+
+state_labels = read_csv("data/states-labels-coords.csv")
+```
+
+It should be noticed that `electoral-votes-tiles-map.csv` has the following
+six variables:
+
+- `x`: x-axis coordinate
+
+- `y`: y-axis coordinate
+
+- `cell`: number of cell (or tile)
+
+- `state`: name of State that a specific tile belongs to
+
+- `abbr`: 2-letter abbreviation of a State
+
+- `fips`: _Federal Information Processing Standard_ (FIPS) code of a State
+
+
+## Merging Votes-data with Tiles-data
+
+In order to graph the tiles map, first we need to merge the `tiles_map` table
+with the `state_by_party` table, matching columns `"abbr"` with "`state_po"`.
+Also, because the states of Maine and Nebraska split their electoral vote,
+we need to assign a Republican vote for Maine, and a Democrat vote for 
+Nebraska.
+
+```{r}
+# merging tiles map data with winner party
+tiles_map = tiles_map |> 
+  inner_join(state_by_party, by = c("abbr" = "state_po"))
+
+# Maine and Nebraska have independent electoral votes
+tiles_map$party[tiles_map$cell == 1487] = "REPUBLICAN"  # Maine
+tiles_map$party[tiles_map$cell == 977] = "DEMOCRAT"  # Nebraska
+```
+
+
+-----
+
+
+# Graphics
+
+Recall that the `tiles_map` data frame has the data to graph the electoral 
+votes map. To plot this map with `ggplot()` all you have to do is add a 
+`geom_tile()` layer, hence the name _tiles map_.
+
+
+## Map 1
+
+Let's start with a basic graph of the tiles map, plotting the tiles that 
+correspond to each state.
+
+```{r}
+ggplot(tiles_map, aes(x = x, y = y)) +
+  geom_tile(color = "white")
+```
+
+
+## Map 2
+
+Because `tiles_map` has been merged with `state_by_party`, we also have the
+winner `party` of each state. Therefore, we can _map_ this variable to the
+`fill` aesthetic to color-code the tiles according to party
+
+```{r}
+ggplot(tiles_map, aes(x = x, y = y)) +
+  geom_tile(color = "white", aes(fill = party)) +
+  scale_fill_manual(values = c("#0077cc", "#cc2200"))
+```
+
+
+## Map 3
+
+In the third iteration of the map, we simplify the background theme and we 
+also superimpose the names of the states that are in the table `state_labels`
+
+```{r}
+ggplot(tiles_map, aes(x = x, y = y)) +
+  geom_tile(color = "white", aes(fill = party)) +
+  scale_fill_manual(values = c("#0077cc", "#cc2200")) +
+  geom_text(data = state_labels,
+            aes(x = x, y = y, label = name),
+            hjust = 0, size = 2.5) +
+  theme_void() +
+  theme(legend.position = "bottom",
+        legend.title = element_blank())
+```
+
+
+## Map4 
+
+The last step involves computing the proportion of electoral votes won by 
+each party, so that a segment horizontal bar can be displayed on top of the
+map to depict which party is the winner:
+
+```{r}
+# how many electoral votes
+electoral_votes_by_state = tiles_map |> 
+  filter(state != "none") |> 
+  count(state, party, name = "count")
+
+# electoral_votes_by_state |> 
+#   group_by(party) |> 
+#   summarize(total = sum(count)) |> 
+#   mutate(prop = total / sum(total))
+
+# find proportions of electoral votes in terms of
+# line segment to be added on top of map
+# 48 * c(0.569, 0.431)
+
+
+ggplot(tiles_map, aes(x = x, y = y)) +
+  xlim(0, 49) +
+  ylim(0, 34) +
+  geom_tile(color = "white", aes(fill = party)) +
+  scale_fill_manual(values = c("#0077cc", "#cc2200")) +
+  geom_text(data = state_labels,
+            aes(x = x, y = y, label = name),
+            hjust = 0, size = 2.5) +
+  geom_segment(x = 0.5, xend = 27.312, y = 34 , yend = 34, 
+               color = "#0077cc", linewidth = 2.5) +
+  geom_segment(x = 27.312, xend = 48.5, y = 34 , yend = 34, 
+               color = "#cc2200", linewidth = 2.5) +
+  geom_segment(x = 23.95, xend = 24.05, y = 34 , yend = 34, 
+               color = "black", linewidth = 2.5) +
+  annotate(geom = "text", x = 24, y = 33, label = "270 to Win",
+           size = 3, color = "gray50") +
+  theme_void() + 
+  theme(legend.position = "bottom",
+        legend.text = element_text(size = 6),
+        legend.key.size = unit(0.5, 'cm'),
+        legend.title = element_blank())
+```
+
+
+

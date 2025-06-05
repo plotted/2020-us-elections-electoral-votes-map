@@ -1,0 +1,56 @@
+# 2020 US Presidential Election Results: Map of Electoral Votes
+
+
+This repository contains code in R to replicate the following graphic:
+
+  
+
+![2020 Presidential Election Results: Map of Electoral
+Votes](source/map-electoral-votes-2020.png)
+
+## Source
+
+- Title: **Presidential Election Results 2020**
+
+- Author(s): Unknown
+
+- Date: Nov 3, 2020
+
+- From: New York Times
+
+- URL:
+  <https://www.nytimes.com/interactive/2020/11/03/us/elections/results-president.html>
+
+- PDF:
+  [2020-Presidential-Election-Results-Map2-NYT.pdf](source/2020-Presidential-Election-Results-Map2-NYT.pdf)
+
+## Data
+
+This repository contains the following three data sets (in CSV format)
+stored in the `data/` folder of this repository:
+
+### 1) Presidential Election Returns
+
+County Presidential Election Returns 2000-2020. This table is in the CSV
+file `countypres_2020-2020.csv`. In turn, the *data dictionary*
+(i.e. codebook) is in the markdown file
+`County-Presidential-Returns-2000-2020.md`.
+
+Source:
+<https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/VOQCHQ>
+
+Citation: MIT Election Data and Science Lab, 2018, “County Presidential
+Election Returns 2000-2020”, <https://doi.org/10.7910/DVN/VOQCHQ>,
+Harvard Dataverse, V13
+
+### 2) Data table for plotting the tiles map of electoral votes
+
+This is a curated table in the CSV file `electoral-votes-tiles-map.csv`
+that provides the data frame to be used for graphing the tiles
+(i.e. electoral votes map).
+
+### 3) Data table for adding state labels on tiles map
+
+This is a curated table in the CSV file `states-labels-coords.csv` that
+provides a data frame to be used for displaying the names of the States
+on the tiles map.
